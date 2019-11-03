@@ -1,11 +1,8 @@
-function a (arg1, arg2) {
-  return arg1*arg2;
-}
+const MAX_INDEXES_AMOUNT = 0;
+const MAX_STOCK_PRICE = 0;
+const MAX_LOSE_YEAR = 0;
+const MAX_LOSE_MONTH = 0;
 
-const result = a(2, 3);
+let data = require ("./data/index.json");
 
-if (result === 6) {
-  console.log("Matches!");
-} else {
-  console.log("Not Matches!");
-}
+console.log(data["amzn"][country]);

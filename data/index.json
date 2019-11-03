@@ -1,0 +1,50 @@
+{
+  "adbe": {
+    "name": "Adobe",
+    "currency": "usd",
+    "categories": [
+      "software", "graphix", "tech"
+    ],
+    "country": "usa"
+  },
+  "adsk": {
+    "name": "Autodesk",
+    "currency": "usd",
+    "categories": [
+      "software", "graphix", "tech"
+    ],
+    "country": "usa"
+  },
+  "amd": {
+    "name": "AMD",
+    "currency": "usd",
+    "categories": [
+      "hardware", "chips", "tech"
+    ],
+    "country": "usa"
+  },
+  "amzn": {
+    "name": "Amazon",
+    "currency": "usd",
+    "categories": [
+      "ratail", "cloud", "tech"
+    ],
+    "country": "usa"
+  },
+  "cmcsa": {
+    "name": "Comcast",
+    "currency": "usd",
+    "categories": [
+      "telecom", "television"
+    ],
+    "country": "usa"
+  },
+  "ntap": {
+    "name": "NetApp",
+    "currency": "usd",
+    "categories": [
+      "software", "cloud"
+    ],
+    "country": "usa"
+  }
+}

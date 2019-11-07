@@ -1,7 +1,5 @@
-{
-  "1": {
-  "singer_name":"kendrick lamar",
-  "age":"32",
+  {
+  "name":"kendrick lamar",
+  "age":32,
   "birth":"june 17"
   }
-}

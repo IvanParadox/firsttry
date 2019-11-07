@@ -1,10 +1,8 @@
-{
-  "2": {
-  "song_name": "follow god",
+  {
+  "name": "follow god",
   "album": "jesus is king",
-  "year": "2019",
-  "duration": "1.44",
+  "year": 2019,
+  "duration": 1.44,
   "language": "english",
-  "artist": ["1", "2", "3"]
+  "artist": [1, 2, 3]
   }
-}

@@ -1,10 +1,8 @@
-{
-  "1": {
-  "song_name": "humble",
+  {
+  "name": "humble",
   "album": "damn",
-  "year": "2017",
-  "duration": "2.57",
+  "year": 2017,
+  "duration": 2.57,
   "language": "english",
-  "artist": ["1", "2", "3"]
+  "artist": [1, 2, 3]
   }
-}

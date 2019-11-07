@@ -9,4 +9,4 @@ data_songs[0]=require('./songs/1.json');
 data_songs[1]=require('./songs/2.json');
 data_songs[2]=require('./songs/3.json');
 
-console.log(data_artists[1], data_songs[1]);
+console.log(data_songs);

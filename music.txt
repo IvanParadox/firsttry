@@ -1,1 +1,1 @@
-undefined
+{"artists":[{"name":"kendrick lamar","age":32,"birth":"june 17"},{"name":"kanye west","age":42,"birth":"june 8"},{"name":"drake graham","age":33,"birth":"october 24"},{"name":"leontiev","age":99,"birth":"october 24"}],"songs":[{"name":"humble","album":"damn","year":2017,"duration":2.57,"language":"english","artist":[1,2,3]},{"name":"follow god","album":"jesus is king","year":2019,"duration":1.44,"language":"english","artist":[1,2,3]},{"name":"god's plan","album":"scorpion","year":2019,"duration":3.19,"language":"english","artist":[1,2,3]}]}

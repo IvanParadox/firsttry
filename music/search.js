@@ -1,6 +1,15 @@
 fs=require("fs");
+let mimeTypes = {
+  "html": "text/html",
+  "png": "image/png",
+  "jpg": "image/png",
+  "css":"text/css",
+  "js":"text/javascript",
+  "rar": "application/x-rar-compressed",
+  "zip": "application/zip"
+}
 
-function loadData() {
+/*(function loadData() {
 
   let data_artists=[];
   let data_songs=[];
@@ -24,31 +33,57 @@ function loadData() {
   }
 
   return {data_artists, data_songs};
-}
+})*/
 
 const http = require('http');
 const port = 3000;
 
 const requestHandler = (request, response) => {
     let requestedFile = decodeURI(request.url);
-    let mypage = fs.readFileSync(`./music/web/index.html`);
-    response.setHeader('Content-Type', 'text/html; charset=utf-8');
+    if (requestedFile.slice(-1) === '/') {
+      requestedFile += 'web/index.html';
+    }
+
+    let fileExtension = requestedFile.split(".");
+    let fileType = fileExtension[fileExtension.length-1];
+    let contentType = 'application/octet-stream';
+    if (typeof mimeTypes[fileType] !== "undefined") {
+      contentType = mimeTypes[fileType];
+    }
+    console.log(fileType);
+    console.log(contentType);
     console.log(requestedFile);
+
     try {
-      response.statuscode = 200;
-      response.end(mypage);
-    } catch (err) {
-      response.statuscode = 404;
-      response.end(`Запрашиваемого файла не существует`)
+      let fileSize = fs.statSync(`.music/web${requestedFile}`)[`bytes`];
+      response.setHeader('Content-Type', `${contentType}; charset=utf-8`);
+      response.setHeader('Content-Length', `${fileSize}; charset=utf-8`);
+      let readStream = fs.ReadStream(`.music/web${requestedFile}`);
+
+      readStream.pipe(response);
+      readStream.on('error', (e) => {
+        response.setHeader('Content-Type', 'text/html; charset=utf-8;');
+        response.statusCode = 500;
+        response.end(`Server Error`);
+        console.error(e);
+      });
+      response.on('close', () => {
+        readStream.destroy();
+      });
+      response.statusCode = 200;
+    } catch (e) {
+      response.statusCode = 404;
+      response.setHeader('Content-Type', `text/html; charset=utf-8`);
+      response.end(`Запрашиваемого файла не существует`);
     }
 }
 
-//function saveData (artists, songs) {
-  //fs.writeFile('music.txt', JSON.stringify({artists, songs}), (err) => {
-    //if (err) throw err;
-    //console.log('The file has been saved!');
-  //});
-//}
+/*(function saveData (artists, songs) {
+  fs.writeFile('music.txt', JSON.stringify({artists, songs}), (err) => {
+    if (err) throw err;
+    console.log('The file has been saved!');
+  });
+})*/
 
 //let loadedData = loadData();
 //saveData(loadedData.data_artists, loadedData.data_songs);

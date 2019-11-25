@@ -41,7 +41,7 @@ const port = 3000;
 const requestHandler = (request, response) => {
     let requestedFile = decodeURI(request.url);
     if (requestedFile.slice(-1) === '/') {
-      requestedFile += 'web/index.html';
+      requestedFile += 'index.html';
     }
 
     let fileExtension = requestedFile.split(".");
@@ -55,11 +55,11 @@ const requestHandler = (request, response) => {
     console.log(requestedFile);
 
     try {
-      let fileSize = fs.statSync(`.music/web${requestedFile}`)[`bytes`];
-      response.setHeader('Content-Type', `${contentType}; charset=utf-8`);
-      response.setHeader('Content-Length', `${fileSize}; charset=utf-8`);
-      let readStream = fs.ReadStream(`.music/web${requestedFile}`);
-
+      let fileSize = fs.statSync(`./music/web${requestedFile}`)[`size`];
+      response.setHeader('Content-Type', `${contentType}; utf-8`);
+      response.setHeader('Content-Length', `${fileSize}; utf-8`);
+      let readStream = fs.ReadStream(`./music/web${requestedFile}`);
+      response.statusCode = 200;
       readStream.pipe(response);
       readStream.on('error', (e) => {
         response.setHeader('Content-Type', 'text/html; charset=utf-8;');
@@ -70,8 +70,8 @@ const requestHandler = (request, response) => {
       response.on('close', () => {
         readStream.destroy();
       });
-      response.statusCode = 200;
     } catch (e) {
+      console.log(e);
       response.statusCode = 404;
       response.setHeader('Content-Type', `text/html; charset=utf-8`);
       response.end(`Запрашиваемого файла не существует`);

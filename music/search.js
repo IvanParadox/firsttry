@@ -38,6 +38,10 @@ let mimeTypes = {
 const http = require('http');
 const port = 3000;
 
+const businessHandler = (request, response) => {
+  return false
+}
+
 const requestHandler = (request, response) => {
     let requestedFile = decodeURI(request.url);
     if (requestedFile.slice(-1) === '/') {
@@ -53,6 +57,8 @@ const requestHandler = (request, response) => {
     console.log(fileType);
     console.log(contentType);
     console.log(requestedFile);
+
+    businessHandler();
 
     try {
       let fileSize = fs.statSync(`./music/web${requestedFile}`)[`size`];

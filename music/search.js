@@ -38,8 +38,15 @@ let mimeTypes = {
 const http = require('http');
 const port = 3000;
 
-const businessHandler = (request, response) => {
-  return false
+function businessLogicHandler (request, response) {
+  let apiValue = new RegExp('\^/api', 'g');
+  let requestedFile = decodeURI(request.url);
+  if (!apiValue.test(requestedFile)) return false;
+  let resultValue = {result: null};
+  response.setHeader('Content-Type', 'Application/json; charset=utf-8;');
+  response.statusCode = 200;
+  response.end (JSON.stringify(resultValue));
+  return true;
 }
 
 const requestHandler = (request, response) => {
@@ -58,7 +65,7 @@ const requestHandler = (request, response) => {
     console.log(contentType);
     console.log(requestedFile);
 
-    businessHandler();
+    businessLogicHandler(request, response);
 
     try {
       let fileSize = fs.statSync(`./music/web${requestedFile}`)[`size`];

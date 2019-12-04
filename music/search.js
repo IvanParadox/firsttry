@@ -43,7 +43,7 @@ function businessLogicHandler (request, response) {
   let requestedFile = decodeURI(request.url);
   if (!apiValue.test(requestedFile)) return false;
   let resultValue = {result: null};
-  response.setHeader('Content-Type', 'Application/json; charset=utf-8;');
+  response.setHeader('Content-Type', 'application/json');
   response.statusCode = 200;
   response.end (JSON.stringify(resultValue));
   return true;

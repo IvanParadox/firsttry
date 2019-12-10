@@ -15,20 +15,20 @@ let mimeTypes = {
   let data_songs=[];
 
   try {
-    artists_read = fs.readdirSync("./music/artists");
-    songs_read = fs.readdirSync("./music/songs");
+    artists_read = fs.readdirSync("./main/artists");
+    songs_read = fs.readdirSync("./main/songs");
     console.log(artists_read, songs_read);
   } catch(err) {
     console.log('Вынь голову из жопы, у тебя ошибка!');
   }
 
   for (let value of artists_read) {
-    let artists_values = JSON.parse(fs.readFileSync(`./music/artists/${value}`));
+    let artists_values = JSON.parse(fs.readFileSync(`./main/artists/${value}`));
     data_artists.push(artists_values);
   }
 
   for (let value of songs_read) {
-    let songs_values = JSON.parse(fs.readFileSync(`./music/songs/${value}`));
+    let songs_values = JSON.parse(fs.readFileSync(`./main/songs/${value}`));
     data_songs.push(songs_values);
   }
 
@@ -38,19 +38,40 @@ let mimeTypes = {
 const http = require('http');
 const port = 3000;
 
-function businessLogicHandler (request, response) {
-  let apiValue = new RegExp('\^/api', 'g');
+function logIn (request, response) {
+  let apiValue = new RegExp('\^/api/auth', 'g');
   let requestedFile = decodeURI(request.url);
   if (!apiValue.test(requestedFile)) return false;
-  let resultValue = {result: null};
-  response.setHeader('Content-Type', 'application/json');
-  response.statusCode = 200;
-  response.end (JSON.stringify(resultValue));
-  return true;
+  let searchParams = new URLSearchParams(requestedFile);
+  //let username = searchParams.get('username');
+  let password = searchParams.get('password');
+  console.log(username);
+  console.log(password);
+  let resultValue = {authed: false};
+  fs.readFile(`./data/profiles/paradox.json`, 'utf-8', function(err, forParse){
+    response.setHeader('Content-Type', 'application/json');
+    console.log(err);
+    if (err) {
+      response.statusCode = 403;
+    } else {
+      let data = JSON.parse(forParse);
+      console.log(data.account.password);
+      console.log(password);
+      if (data.account.password === password) {
+        response.statusCode = 200;
+        resultValue.authed = true;
+      } else {
+        response.statusCode = 403;
+      }
+    }
+    response.end (JSON.stringify(resultValue));
+  });
+    return true;
 }
 
 const requestHandler = (request, response) => {
     let requestedFile = decodeURI(request.url);
+    console.log(requestedFile);
     if (requestedFile.slice(-1) === '/') {
       requestedFile += 'index.html';
     }
@@ -65,13 +86,13 @@ const requestHandler = (request, response) => {
     console.log(contentType);
     console.log(requestedFile);
 
-    businessLogicHandler(request, response);
+    if (logIn(request, response)) return;
 
     try {
-      let fileSize = fs.statSync(`./music/web${requestedFile}`)[`size`];
+      let fileSize = fs.statSync(`./main/web${requestedFile}`)[`size`];
       response.setHeader('Content-Type', `${contentType}; utf-8`);
       response.setHeader('Content-Length', `${fileSize}; utf-8`);
-      let readStream = fs.ReadStream(`./music/web${requestedFile}`);
+      let readStream = fs.ReadStream(`./main/web${requestedFile}`);
       response.statusCode = 200;
       readStream.pipe(response);
       readStream.on('error', (e) => {
@@ -92,7 +113,7 @@ const requestHandler = (request, response) => {
 }
 
 /*(function saveData (artists, songs) {
-  fs.writeFile('music.txt', JSON.stringify({artists, songs}), (err) => {
+  fs.writeFile('main.txt', JSON.stringify({artists, songs}), (err) => {
     if (err) throw err;
     console.log('The file has been saved!');
   });

@@ -38,17 +38,27 @@ let mimeTypes = {
 const http = require('http');
 const port = 3000;
 
-function logIn (request, response) {
-  let apiValue = new RegExp('\^/api/auth', 'g');
-  let requestedFile = decodeURI(request.url);
-  if (!apiValue.test(requestedFile)) return false;
-  let searchParams = new URLSearchParams(requestedFile);
-  //let username = searchParams.get('username');
-  let password = searchParams.get('password');
-  console.log(username);
-  console.log(password);
+function requestBusinessHandler(request, response, requestedFile) {
+  let businessResult = {result: null}
+  response.setHeader('Content-Type', 'application/json');
+  response.statusCode = 200;
+  response.end(JSON.stringify(businessResult));
+}
+
+function getAuthorizationData (url) {
+  result = {};
+  let [address, query] = url.split('?');
+  if (query) for (keyvalue of query.split('&')){
+    let [key, value] = keyvalue.split('=');
+    result[key] = value;
+  }
+  return result;
+}
+
+function logIn (request, response, requestedFile) {
+  let authData = getAuthorizationData(requestedFile);
   let resultValue = {authed: false};
-  fs.readFile(`./data/profiles/paradox.json`, 'utf-8', function(err, forParse){
+  fs.readFile(`./data/profiles/${authData.username}.json`, 'utf-8', function(err, forParse){
     response.setHeader('Content-Type', 'application/json');
     console.log(err);
     if (err) {
@@ -56,8 +66,8 @@ function logIn (request, response) {
     } else {
       let data = JSON.parse(forParse);
       console.log(data.account.password);
-      console.log(password);
-      if (data.account.password === password) {
+      console.log(authData.password);
+      if (data.account.password === authData.password) {
         response.statusCode = 200;
         resultValue.authed = true;
       } else {
@@ -66,7 +76,21 @@ function logIn (request, response) {
     }
     response.end (JSON.stringify(resultValue));
   });
-    return true;
+}
+
+function router (request, response, requestedFile) {
+  let dataURL = [
+    {url: /^\/api$/, function: requestBusinessHandler},
+    {url: /^\/api\/auth/, function: logIn}
+  ]
+  for (value of dataURL) {
+    console.log(`${value.url} vs ${requestedFile} + ${value.url.test(requestedFile)}`);
+    if (value.url.test(requestedFile)) {
+      value.function(request, response, requestedFile);
+      return true;
+    }
+  }
+  return false
 }
 
 const requestHandler = (request, response) => {
@@ -86,7 +110,9 @@ const requestHandler = (request, response) => {
     console.log(contentType);
     console.log(requestedFile);
 
-    if (logIn(request, response)) return;
+    //if (requestBusinessHandler(request, response)) return;
+    //if (logIn(request, response)) return;
+    if (router(request, response, requestedFile)) return;
 
     try {
       let fileSize = fs.statSync(`./main/web${requestedFile}`)[`size`];

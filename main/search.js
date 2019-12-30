@@ -46,17 +46,25 @@ function requestBusinessHandler(request, response, requestedFile) {
 }
 
 function getAuthorizationData (url) {
-  result = {};
+  let paramsString = url;
+  let searchParams = new URLSearchParams(paramsString);
+  let data = JSON.stringify({
+    username: searchParams.get("username"),
+    password: searchParams.get("password")
+  });
+  return data;
+}
+  /*result = {};
   let [address, query] = url.split('?');
   if (query) for (keyvalue of query.split('&')){
     let [key, value] = keyvalue.split('=');
     result[key] = value;
   }
   return result;
-}
+}*/
 
-function logIn (request, response, requestedFile) {
-  let authData = getAuthorizationData(requestedFile);
+function logIn (request, response, requestedFile, authData) {
+  //let authData = getAuthorizationData(requestedFile);
   let resultValue = {authed: false};
   fs.readFile(`./data/profiles/${authData.username}.json`, 'utf-8', function(err, forParse){
     response.setHeader('Content-Type', 'application/json');
@@ -78,7 +86,7 @@ function logIn (request, response, requestedFile) {
   });
 }
 
-function router (request, response, requestedFile) {
+function router (request, response, requestedFile, authData) {
   let dataURL = [
     {url: /^\/api$/, function: requestBusinessHandler},
     {url: /^\/api\/auth/, function: logIn}
@@ -86,14 +94,22 @@ function router (request, response, requestedFile) {
   for (value of dataURL) {
     console.log(`${value.url} vs ${requestedFile} + ${value.url.test(requestedFile)}`);
     if (value.url.test(requestedFile)) {
-      value.function(request, response, requestedFile);
+      value.function(request, response, requestedFile, authData);
       return true;
     }
   }
   return false
 }
 
-const requestHandler = (request, response) => {
+function getCookie (request, response, authData) {
+  console.log('Cookies from client:', request.headers.cookie);
+  let date = new Date(Date.now() + 172800e3).toUTCString();
+  console.log('Cookies will be save until:', date);
+  response.writeHead('Set-Cookie', `${authData.username} = ${authData.password}`, `expires=${date}`);
+  console.log(response.getHeader('Set-Cookie'));
+}
+
+/*const requestHandler = (request, response) => {
     let requestedFile = decodeURI(request.url);
     console.log(requestedFile);
     if (requestedFile.slice(-1) === '/') {
@@ -112,7 +128,6 @@ const requestHandler = (request, response) => {
 
     //if (requestBusinessHandler(request, response)) return;
     //if (logIn(request, response)) return;
-    if (router(request, response, requestedFile)) return;
 
     try {
       let fileSize = fs.statSync(`./main/web${requestedFile}`)[`size`];
@@ -136,7 +151,7 @@ const requestHandler = (request, response) => {
       response.setHeader('Content-Type', `text/html; charset=utf-8`);
       response.end(`Запрашиваемого файла не существует`);
     }
-}
+  }*/
 
 /*(function saveData (artists, songs) {
   fs.writeFile('main.txt', JSON.stringify({artists, songs}), (err) => {
@@ -148,7 +163,29 @@ const requestHandler = (request, response) => {
 //let loadedData = loadData();
 //saveData(loadedData.data_artists, loadedData.data_songs);
 
-const server = http.createServer(requestHandler);
+const server = http.createServer();
+server.on('request', function(request, response) {
+  let requestedFile = decodeURI(request.url);
+  let data = '';
+  let authError = {authed: null};
+
+  request.on('data', function(chunk) {
+      data += chunk.toString();
+  });
+
+  request.on('end', function() {
+    response.setHeader('Content-Type', 'application/json');
+      let authData = JSON.parse(getAuthorizationData(data));
+      console.log(authData);
+      getCookie(request, response, authData);
+      if (authData !== '') {
+        return router(request, response, requestedFile, authData);
+      } else {
+        response.statusCode = 404;
+        response.end(JSON.stringify(authError));
+      }
+  });
+});
 
 server.listen(port, (err) => {
     if (err) {

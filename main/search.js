@@ -103,10 +103,71 @@ function router (request, response, requestedFile, authData) {
 
 function getCookie (request, response, authData) {
   console.log('Cookies from client:', request.headers.cookie);
-  let date = new Date(Date.now() + 172800e3).toUTCString();
-  console.log('Cookies will be save until:', date);
-  response.writeHead('Set-Cookie', `${authData.username} = ${authData.password}`, `expires=${date}`);
-  console.log(response.getHeader('Set-Cookie'));
+  if (request.headers.cookie == undefined) {
+    let token = makeToken();
+    const dateCREATE = new Date(Date.now()).toUTCString()
+    const dateDELETE = new Date(Date.now() + 172800e3).toUTCString();
+    console.log('Cookies will be save until:', dateDELETE);
+    response.setHeader('Set-Cookie', `token = ${token}; expires=${dateDELETE}`);
+    console.log(response.getHeader('Set-Cookie'));
+
+    let sessionData = {};
+    sessionData.username = authData.username;
+    sessionData.create = dateCREATE;
+    sessionData.expires = dateDELETE;
+
+    fs.writeFile(`./data/session/${token}.json`, JSON.stringify(sessionData), (err) => {
+      if(err) throw err;
+      console.log('Token', token, 'created');
+      });
+  } else {
+    let searchParams = new URLSearchParams(request.headers.cookie);
+    let token = searchParams.get("token");
+    let context = {};
+    checkToken (token);
+    console.log(context);
+  }
+}
+
+
+
+function makeToken () {
+  let token = '';
+  let possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+  for (let i = 0; i <16; i++)
+    token += possible.charAt((Math.random() * possible.length));
+
+  return token;
+}
+
+function checkToken (token) {
+  console.log(token);
+  fs.readFile(`./data/session/${token}.json`, function (err, forParse) {
+    if (err) {
+      console.log("This token doesn't exist");
+    } else {
+      let data = JSON.parse(forParse);
+      let date = new Date(Date.now()).toUTCString();
+      console.log(data.expires);
+      console.log(date);
+      if (data.expires > date) {
+        data.expires = new Date(Date.now() + 172800e3).toUTCString();
+        fs.writeFileSync(`./data/session/${token}.json`, JSON.stringify(data), (err) => {
+          if(err) throw err;
+          console.log('Token data', token, 'changed: new time set');
+          });
+        let context = data.username;
+        return context;
+      } else {
+        fs.unlink(`./data/session/${token}.json`, (err) => {
+          if (err) throw err;
+          console.log('Token was deleted');
+          return false;
+        });
+      }
+    }
+  });
 }
 
 /*const requestHandler = (request, response) => {
@@ -177,8 +238,8 @@ server.on('request', function(request, response) {
     response.setHeader('Content-Type', 'application/json');
       let authData = JSON.parse(getAuthorizationData(data));
       console.log(authData);
-      getCookie(request, response, authData);
       if (authData !== '') {
+        getCookie (request, response, authData);
         return router(request, response, requestedFile, authData);
       } else {
         response.statusCode = 404;

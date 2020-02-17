@@ -65,6 +65,7 @@ function getAuthorizationData (url) {
 
 function logIn (request, response, requestedFile, authData) {
   //let authData = getAuthorizationData(requestedFile);
+  console.log('run logIn')
   let resultValue = {authed: false};
   fs.readFile(`./data/profiles/${authData.username}.json`, 'utf-8', function(err, forParse){
     response.setHeader('Content-Type', 'application/json');
@@ -86,7 +87,8 @@ function logIn (request, response, requestedFile, authData) {
   });
 }
 
-function router (request, response, requestedFile, authData) {
+function router (request, response, requestedFile, authData, context) {
+  console.log('run router')
   let dataURL = [
     {url: /^\/api$/, function: requestBusinessHandler},
     {url: /^\/api\/auth/, function: logIn}
@@ -101,9 +103,11 @@ function router (request, response, requestedFile, authData) {
   return false
 }
 
-function getCookie (request, response, authData) {
+function getCookie (request, response, requestedFile, authData) {
+  console.log('run getCookie')
   console.log('Cookies from client:', request.headers.cookie);
   if (request.headers.cookie == undefined) {
+    console.log('token underfined')
     let token = makeToken();
     const dateCREATE = new Date(Date.now()).toUTCString()
     const dateDELETE = new Date(Date.now() + 172800e3).toUTCString();
@@ -121,17 +125,15 @@ function getCookie (request, response, authData) {
       console.log('Token', token, 'created');
       });
   } else {
+    console.log('token exists')
     let searchParams = new URLSearchParams(request.headers.cookie);
     let token = searchParams.get("token");
-    let context = {};
-    checkToken (token);
-    console.log(context);
+    return checkToken (token);
   }
 }
 
-
-
 function makeToken () {
+  console.log('run makeToken')
   let token = '';
   let possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 
@@ -142,28 +144,38 @@ function makeToken () {
 }
 
 function checkToken (token) {
+  console.log('run chekToken')
   console.log(token);
-  fs.readFile(`./data/session/${token}.json`, function (err, forParse) {
+  fs.readdir(`./data/session/${token}.json`, (err, forParse) => {
     if (err) {
       console.log("This token doesn't exist");
+      let context = '';
+      return context;
     } else {
+      console.log('readFile successful');
+      console.log(forParse);
       let data = JSON.parse(forParse);
-      let date = new Date(Date.now()).toUTCString();
-      console.log(data.expires);
+      let expires = new Date(data.expires).getTime();
+      let date = new Date(Date.now()).getTime();
+      console.log(expires);
       console.log(date);
-      if (data.expires > date) {
+      if (expires >= date) {
+        console.log('expires bigger than now date');
         data.expires = new Date(Date.now() + 172800e3).toUTCString();
-        fs.writeFileSync(`./data/session/${token}.json`, JSON.stringify(data), (err) => {
-          if(err) throw err;
-          console.log('Token data', token, 'changed: new time set');
-          });
+        console.log('Token data', token, 'changed: new time set');
         let context = data.username;
+        fs.writeFile(`./data/session/${token}.json`, JSON.stringify(data), (err) => {
+          if (err) {
+            console.log('Something went wrong');
+          }
+        });
         return context;
       } else {
         fs.unlink(`./data/session/${token}.json`, (err) => {
           if (err) throw err;
           console.log('Token was deleted');
-          return false;
+          let context = '';
+          return context;
         });
       }
     }
@@ -239,8 +251,10 @@ server.on('request', function(request, response) {
       let authData = JSON.parse(getAuthorizationData(data));
       console.log(authData);
       if (authData !== '') {
-        getCookie (request, response, authData);
-        return router(request, response, requestedFile, authData);
+        let context = {};
+        getCookie (request, response, requestedFile, authData);
+        console.log('Context now:', context);
+        return router (request, response, requestedFile, authData, context);
       } else {
         response.statusCode = 404;
         response.end(JSON.stringify(authError));

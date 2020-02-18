@@ -128,7 +128,8 @@ function getCookie (request, response, requestedFile, authData) {
     console.log('token exists')
     let searchParams = new URLSearchParams(request.headers.cookie);
     let token = searchParams.get("token");
-    return checkToken (token);
+    let context = checkToken (token);
+    return context;
   }
 }
 
@@ -145,11 +146,11 @@ function makeToken () {
 
 function checkToken (token) {
   console.log('run chekToken')
-  console.log(token);
-  fs.readdir(`./data/session/${token}.json`, (err, forParse) => {
+  console.log('Token now is: ', token);
+  fs.readFileSync(`./data/session/${token}.json`, (err, forParse) => {
     if (err) {
       console.log("This token doesn't exist");
-      let context = '';
+      let context = {};
       return context;
     } else {
       console.log('readFile successful');
@@ -171,10 +172,10 @@ function checkToken (token) {
         });
         return context;
       } else {
-        fs.unlink(`./data/session/${token}.json`, (err) => {
+        fs.unlinkSync(`./data/session/${token}.json`, (err) => {
           if (err) throw err;
           console.log('Token was deleted');
-          let context = '';
+          let context = {};
           return context;
         });
       }

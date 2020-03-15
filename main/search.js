@@ -38,7 +38,7 @@ let mimeTypes = {
 const http = require('http');
 const port = 3000;
 
-function requestBusinessHandler(request, response, requestedFile) {
+function requestBusinessHandler(request, response, requestedFile, data, context) {
   let businessResult = {result: null}
   response.setHeader('Content-Type', 'application/json');
   response.statusCode = 200;
@@ -63,7 +63,7 @@ function getAuthorizationData (url) {
   return result;
 }*/
 
-function logIn (request, response, requestedFile, data) {
+function logIn (request, response, requestedFile, data, context) {
   console.log('run logIn');
   console.log(data);
   let authData = JSON.parse(getAuthorizationData(data));
@@ -95,10 +95,22 @@ function logIn (request, response, requestedFile, data) {
           sessionData.create = dateCREATE;
           sessionData.expires = dateDELETE;
 
-          fs.writeFile(`./data/session/${token}.json`, JSON.stringify(sessionData), (err) => {
+          let folderName = token.slice(0,2);
+          console.log(folderName);
+
+          try {
+          fs.readdirSync(`./data/session/${folderName}`, 'utf-8');
+          fs.writeFile(`./data/session/${folderName}/${token}.json`, JSON.stringify(sessionData), (err) => {
             if(err) throw err;
-            console.log('Token', token, 'created');
+              console.log('Token', token, 'created');
             });
+          } catch (err) {
+            fs.mkdirSync(`./data/session/${folderName}`);
+            fs.writeFile(`./data/session/${folderName}/${token}.json`, JSON.stringify(sessionData), (err) => {
+              if(err) throw err;
+              console.log('Token', token, 'created');
+            });
+          }
         } else {
             console.log('Token already exists')
           }
@@ -115,12 +127,13 @@ function router (request, response, requestedFile, data, context) {
   console.log(context);
   let dataURL = [
     {url: /^\/api$/, function: requestBusinessHandler},
-    {url: /^\/api\/auth/, function: logIn}
+    {url: /^\/api\/auth/, function: logIn},
+    {url: /^\/api\/whoami/, function: whoami}
   ]
   for (value of dataURL) {
     console.log(`${value.url} vs ${requestedFile} + ${value.url.test(requestedFile)}`);
     if (value.url.test(requestedFile)) {
-      value.function(request, response, requestedFile, data);
+      value.function(request, response, requestedFile, data, context);
       return true;
     }
   }
@@ -132,7 +145,8 @@ function parseCookie (request, response, requestedFile) {
   let searchParams = new URLSearchParams(request.headers.cookie);
   let token = searchParams.get("token");
   if (request.headers.cookie !== undefined || token !== null) {
-    let context = checkToken (token);
+    let folderName = token.slice(0,2);
+    let context = checkToken (token, folderName);
     return context;
   } else {
     console.log("Token doesn't create yet")
@@ -150,34 +164,67 @@ function makeToken () {
   return token;
 }
 
-function checkToken (token) {
+function checkToken (token, folderName) {
   console.log(token);
   let context = {};
-  let tokenData = fs.readFileSync(`./data/session/${token}.json`, 'utf-8');
+  let tokenData = fs.readFileSync(`./data/session/${folderName}/${token}.json`, 'utf-8');
   console.log(tokenData);
-    if (tokenData == 'ENOENT') {
-      console.log("This token doesn't exist");
-      context = {};
+  if (tokenData == 'ENOENT') {
+    console.log("This token doesn't exist");
+    context = {};
+  } else {
+    console.log('readFile successful');
+    let data = JSON.parse(tokenData);
+    let expires = new Date(data.expires).getTime();
+    let date = new Date(Date.now()).getTime();
+    console.log(expires);
+    console.log(date);
+    if (expires >= date) {
+      console.log('expires bigger than now date');
+      data.expires = new Date(Date.now() + 172800e3).toUTCString();
+      console.log('Token data', token, 'changed: new time set');
+      fs.writeFileSync(`./data/session/${folderName}/${token}.json`, JSON.stringify(data));
+      context.username = data.username;
     } else {
-        console.log('readFile successful');
-        let data = JSON.parse(tokenData);
-        let expires = new Date(data.expires).getTime();
-        let date = new Date(Date.now()).getTime();
-        console.log(expires);
-        console.log(date);
-        if (expires >= date) {
-          console.log('expires bigger than now date');
-          data.expires = new Date(Date.now() + 172800e3).toUTCString();
-          console.log('Token data', token, 'changed: new time set');
-          fs.writeFileSync(`./data/session/${token}.json`, JSON.stringify(data));
-          context = data.username;
-        } else {
-          fs.unlinkSync(`./data/session/${token}.json`);
-          console.log('Token was deleted');
-          context = {};
-        }
+      fs.unlinkSync(`./data/session/${folderName}/${token}.json`);
+      console.log('Token was deleted');
+      context = {};
     }
+  }
   return context;
+}
+
+function whoami (request, response, requestedFile, data, context) {
+  let resultAuth = {authorized: false};
+  response.setHeader('Content-Type', 'application/json');
+  if (context !== undefined) {
+    response.statusCode = 200;
+    resultAuth.authorized = context;
+  } else {
+    response.statusCode = 403;
+  }
+  response.end(JSON.stringify(resultAuth));
+}
+
+function garbagecollector () {
+  let listofsession = fs.readdirSync(`./data/session/`, 'utf-8');
+  console.log(listofsession);
+  for (let path of listofsession) {
+    let listoftoken = {};
+    listoftoken.token = fs.readdirSync(`./data/session/${path}/`, 'utf-8');
+    let token = fs.statSync(`./data/session/${path}/${listoftoken.token}`);
+    let date = new Date(Date.now()).getTime();
+    if (token.mtimeMs + 172800e3 < date) {
+      fs.unlinkSync(`./data/session/${path}/${listoftoken.token}`);
+      console.log('Old cookie', listoftoken.token, 'deleted');
+      let listoftoken = fs.readFileSync(`./data/session/${path}/`);
+      if (listoftoken = '') {
+        fs.rmdirSync(`./data/session/${path}/`);
+      }
+    } else {
+      console.log(path, 'is OK');
+    }
+  }
 }
 
   /*console.log('run chekToken')
@@ -275,7 +322,6 @@ const server = http.createServer();
 server.on('request', function(request, response) {
   let requestedFile = decodeURI(request.url);
   let data = '';
-  let authError = {authed: null};
 
   request.on('data', function(chunk) {
       data += chunk.toString();
@@ -283,6 +329,7 @@ server.on('request', function(request, response) {
 
   request.on('end', function() {
     response.setHeader('Content-Type', 'application/json');
+    let timerId = setTimeout(garbagecollector, 10000);
     let context = parseCookie (request, response, requestedFile, data);
     return router (request, response, requestedFile, data, context);
   });
